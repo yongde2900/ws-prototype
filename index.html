@@ -1,0 +1,122 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Multiple Chat Rooms</title>
+    <style>
+      body {
+        display: flex;
+        font-family: Arial, sans-serif;
+      }
+      .input-container {
+        display: flex;
+        flex-direction: column;
+        width: 200px;
+        padding: 10px;
+        border: 1px solid #ccc;
+        margin-right: 10px;
+      }
+      .input-container select,
+      .input-container input,
+      .input-container button {
+        margin-bottom: 10px;
+        padding: 5px;
+      }
+      .chat-container {
+        flex: 1;
+        padding: 10px;
+        border: 1px solid #ccc;
+        margin: 5px;
+        display: flex;
+        flex-direction: column;
+      }
+      .chat-header {
+        font-weight: bold;
+        margin-bottom: 5px;
+      }
+      .messages {
+        flex: 1;
+        overflow-y: auto;
+        border: 1px solid #ccc;
+        padding: 5px;
+        margin-bottom: 5px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="input-container">
+      <select id="chatSelector">
+        <option value="1">Chat Room 1</option>
+        <option value="2">Chat Room 2</option>
+        <option value="3">Chat Room 3</option>
+      </select>
+      <input type="text" id="messageInput" placeholder="Enter your message" />
+      <button id="sendButton">Send</button>
+    </div>
+
+    <div class="chat-container" id="chatRoom1">
+      <div class="chat-header">Chat Room 1</div>
+      <div class="messages" id="messages1"></div>
+    </div>
+
+    <div class="chat-container" id="chatRoom2">
+      <div class="chat-header">Chat Room 2</div>
+      <div class="messages" id="messages2"></div>
+    </div>
+
+    <div class="chat-container" id="chatRoom3">
+      <div class="chat-header">Chat Room 3</div>
+      <div class="messages" id="messages3"></div>
+    </div>
+
+    <script type="module">
+      const ws1 = new WebSocket("ws://localhost:8081?room=1");
+      const ws2 = new WebSocket("ws://localhost:8081?room=2");
+      const ws3 = new WebSocket("ws://localhost:8081?room=3");
+
+      ws1.onopen = () => console.log("Connected to WebSocket server 1");
+      ws2.onopen = () => console.log("Connected to WebSocket server 2");
+      ws3.onopen = () => console.log("Connected to WebSocket server 3");
+
+      ws1.onmessage = (event) => addMessage("messages1", event.data);
+      ws2.onmessage = (event) => addMessage("messages2", event.data);
+      ws3.onmessage = (event) => addMessage("messages3", event.data);
+
+      ws1.onclose = () => console.log("Disconnected from WebSocket server 1");
+      ws2.onclose = () => console.log("Disconnected from WebSocket server 2");
+      ws3.onclose = () => console.log("Disconnected from WebSocket server 3");
+
+      document
+        .getElementById("sendButton")
+        .addEventListener("click", sendMessage);
+
+      async function sendMessage() {
+        const chatSelector = document.getElementById("chatSelector").value;
+        const messageInput = document.getElementById("messageInput");
+        const message = {
+          room: chatSelector,
+          message: messageInput.value,
+        };
+
+        console.log("message", message);
+        await fetch("http://localhost:1000/send", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(message),
+        });
+
+        document.getElementById("messageInput").value = ""; // 清空輸入欄
+
+        messageInput.value = ""; // 清空輸入欄
+      }
+
+      function addMessage(elementId, message) {
+        const messages = document.getElementById(elementId);
+        const messageItem = document.createElement("div");
+        messageItem.textContent = message;
+        messages.appendChild(messageItem);
+      }
+    </script>
+  </body>
+</html>
